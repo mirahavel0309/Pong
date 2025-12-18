@@ -6,6 +6,7 @@
 #include <gl2d/gl2d.h>
 #include <engine/debug/openglErrorReporting.h>
 #include <engine/Shader.h>
+#include <engine/Render2D.h>
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
@@ -20,9 +21,9 @@
 /// - Window size, title, debug flags, etc.
 /// - Safe to edit.
 /// ============================================================================
-static constexpr int kDefaultWidth = 640;
-static constexpr int kDefaultHeight = 480;
-static constexpr const char* kWindowTitle = "CrowFramework Sandbox";
+static constexpr int kDefaultWidth = 1280;
+static constexpr int kDefaultHeight = 720;
+static constexpr const char* kWindowTitle = "Pong";
 #pragma endregion
 
 #pragma region Platform_Callbacks
@@ -140,6 +141,9 @@ int main()
     /// - Initialize game state here.
     /// - Player, enemies, levels, scores, etc.
     /// ========================================================================
+    
+    crow::Render2D_Init(vao);
+   
 #pragma endregion
 
 #pragma region Main_Loop
@@ -164,6 +168,13 @@ int main()
         /// Input Update
         /// - Handle keyboard / mouse input here.
         /// --------------------------------------------------------------------
+		float letfY = 0.0f;
+		float rightY = 0.0f;
+
+        const float paddleHalfH = 0.30f;
+        const float paddleSpeed = 1.5f;
+		double prevTime = glfwGetTime();
+
 #pragma endregion
 
 #pragma region Game_Update
@@ -180,14 +191,8 @@ int main()
         /// - Draw game objects here.
         /// - Do NOT update game logic in this section.
         /// --------------------------------------------------------------------
-        shader.Use();
-        shader.SetVec3("uColor", 0.0f, 1.0f, 0.0f);
-        shader.SetVec2("uScale", 0.5f, 0.5f);
-        shader.SetVec2("uOffset", 0.0f, 0.0f);
-
-        glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
+        crow::Render2D_DrawRect(shader, { -0.9f, 0.0f }, { 0.03f, 0.30f }, { 1,1,1 });
+        crow::Render2D_DrawRect(shader, { 0.9f, 0.0f }, { 0.03f, 0.30f }, { 1,1,1 });
 #pragma endregion
 
 #pragma region UI_Render
