@@ -143,6 +143,13 @@ int main()
     /// ========================================================================
     
     crow::Render2D_Init(vao);
+
+    float leftY = 0.0f;
+    float rightY = 0.0f;
+
+    const float paddleHalfH = 0.30f;
+    const float paddleSpeed = 1.5f;
+    double prevTime = glfwGetTime();
    
 #pragma endregion
 
@@ -161,6 +168,11 @@ int main()
         glfwGetFramebufferSize(window, &width, &height);
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT);
+
+		double now = glfwGetTime();
+		float dt = (float)(now - prevTime);
+		prevTime = now;
+		if (dt > 0.1f) dt = 0.1f;
 #pragma endregion
 
 #pragma region Input_Update
@@ -168,13 +180,12 @@ int main()
         /// Input Update
         /// - Handle keyboard / mouse input here.
         /// --------------------------------------------------------------------
-		float letfY = 0.0f;
-		float rightY = 0.0f;
 
-        const float paddleHalfH = 0.30f;
-        const float paddleSpeed = 1.5f;
-		double prevTime = glfwGetTime();
+		float leftAxis = 0.0f;
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) leftAxis += 1.0f;
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) leftAxis -= 1.0f;
 
+		leftY += leftAxis * paddleSpeed * dt;
 #pragma endregion
 
 #pragma region Game_Update
@@ -183,6 +194,14 @@ int main()
         /// - Update game logic.
         /// - Movement, collision, AI, scoring, etc.
         /// --------------------------------------------------------------------
+        auto Clamp = [](float v, float lo, float hi)
+            {
+                return (v < lo) ? lo : (v > hi) ? hi : v;
+			};
+		float minY = -1.0f + paddleHalfH;
+		float maxY = 1.0f - paddleHalfH;
+
+		leftY = Clamp(leftY, minY, maxY);
 #pragma endregion
 
 #pragma region World_Render
@@ -191,7 +210,7 @@ int main()
         /// - Draw game objects here.
         /// - Do NOT update game logic in this section.
         /// --------------------------------------------------------------------
-        crow::Render2D_DrawRect(shader, { -0.9f, 0.0f }, { 0.03f, 0.30f }, { 1,1,1 });
+        crow::Render2D_DrawRect(shader, { -0.9f, leftY }, { 0.03f, 0.30f }, { 1,1,1 });
         crow::Render2D_DrawRect(shader, { 0.9f, 0.0f }, { 0.03f, 0.30f }, { 1,1,1 });
 #pragma endregion
 
