@@ -6,7 +6,7 @@ static float ClampF(float v, float lo, float hi)
 {
 	return (v < lo) ? lo : (v > hi) ? hi : v;
 }
-
+ 
 static bool CircleAABB(float cx, float cy, float r,
 	float minX, float minY, float maxX, float maxY,
 	float& outClosestX, float& outClosestY)
@@ -30,8 +30,11 @@ PongGame::PongGame()
 	ball.Reset(1);
 }
 
+
 void PongGame::UpdatePlayer(float dt, void* windowPtr)
 {
+	if (gameOver) return;
+
 	GLFWwindow* window = (GLFWwindow*)windowPtr;
 
 	float axis = 0.0f;
@@ -47,6 +50,8 @@ void PongGame::UpdatePlayer(float dt, void* windowPtr)
 
 void PongGame::UpdateAI(float dt)
 {
+	if (gameOver) return;
+
 	float diff = ball.y - right.y;
 
 	float axis = 0.0f;
@@ -63,6 +68,8 @@ void PongGame::UpdateAI(float dt)
 
 void PongGame::UpdateBall(float dt)
 {
+	if (gameOver) return;
+
 	scoredThisFrame = false;
 
 	ball.Update(dt);
@@ -90,6 +97,31 @@ void PongGame::UpdateBall(float dt)
 		scoredThisFrame = true;
 		ResetRound(+1);
 	}
+
+	ball.speedMul += timeAccel * dt;
+	if (ball.speedMul > maxBallSpeedMul) ball.speedMul = maxBallSpeedMul;
+
+	float curSpeed = std::sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+	if (curSpeed > 0.0001f)
+	{
+		float targetSpeed = ball.baseSpeed * ball.speedMul;
+		float k = targetSpeed / curSpeed;
+		ball.vx *= k;
+		ball.vy *= k;
+	}
+
+	if (leftScore >= 10)
+	{
+		gameOver = true;
+		winner = 1;
+	}
+	else if (rightScore >= 10)
+	{
+		gameOver = true;
+		winner = 2;
+	}
+
+
 }
 
 void PongGame::HandleCollisions()
@@ -98,49 +130,50 @@ void PongGame::HandleCollisions()
 	const float rightX = 0.9f;
 	const float paddleHalfW = 0.03f * 0.5f;
 
-	float speed = std::sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
-	if (speed < 0.0001f) speed = 0.8f;
-
 	auto Solve = [&](float paddleX, Paddle& p, bool isLeft)
 		{
-			float minX = paddleX - paddleHalfW;
-			float maxX = paddleX + paddleHalfW;
-			float minY = p.y - p.halfH;
-			float maxY = p.y + p.halfH;
+			float ballMinX = ball.x - ball.halfSize;
+			float ballMaxX = ball.x + ball.halfSize;
+			float ballMinY = ball.y - ball.halfSize;
+			float ballMaxY = ball.y + ball.halfSize;
 
-			float cx, cy;
-			if (!CircleAABB(ball.x, ball.y, ball.halfSize, minX, minY, maxX, maxY, cx, cy))
+			float paddleMinX = paddleX - paddleHalfW;
+			float paddleMaxX = paddleX + paddleHalfW;
+			float paddleMinY = p.y - p.halfH;
+			float paddleMaxY = p.y + p.halfH;
+
+			if (ballMaxX < paddleMinX || ballMinX > paddleMaxX ||
+				ballMaxY < paddleMinY || ballMinY > paddleMaxY)
 				return;
 
 			if (isLeft && ball.vx < 0.0f)
 			{
-				ball.x = maxX + ball.halfSize;
-				ball.vx = std::fabs(ball.vx);
+				ball.x = paddleMaxX + ball.halfSize;
 			}
 			else if (!isLeft && ball.vx > 0.0f)
 			{
-				ball.x = minX - ball.halfSize;
-				ball.vx = -std::fabs(ball.vx);
+				ball.x = paddleMinX - ball.halfSize;
 			}
 			else
 			{
-				ball.x = isLeft ? (maxX + ball.halfSize) : (minX - ball.halfSize);
 				return;
 			}
 
 			float t = (ball.y - p.y) / p.halfH;
 			t = ClampF(t, -1.0f, 1.0f);
 
-			const float spin = 0.75f;
+			ball.speedMul += hitAccel;
+			if (ball.speedMul > maxBallSpeedMul)
+				ball.speedMul = maxBallSpeedMul;
 
-			float newVy = speed * t * spin;
-			float newVxMag = std::sqrt(ClampF(speed * speed - newVy * newVy, 0.0f, 9999.0f));
+			float targetSpeed = ball.baseSpeed * ball.speedMul;
 
+			float newVy = targetSpeed * t;
+			float newVx = std::sqrt(ClampF(targetSpeed * targetSpeed - newVy * newVy, 0.0f, 9999.0f));
+			newVx = isLeft ? +newVx : -newVx;
+
+			ball.vx = newVx;
 			ball.vy = newVy;
-			ball.vx = isLeft ? +newVxMag : -newVxMag;
-
-			ball.vx *= 1.02f;
-			ball.vy *= 1.02f;
 		};
 
 	Solve(leftX, left, true);
@@ -151,6 +184,19 @@ void PongGame::ResetRound(int serveDir)
 {
 	left.y = 0.0f;
 	right.y = 0.0f;
+
 	ball.Reset(serveDir);
+
+	ball.x = 0.0f;
+	ball.y = 0.0f;
 }
 
+void PongGame::ResetMatch()
+{
+	leftScore = 0;
+	rightScore = 0;
+	gameOver = false;
+	winner = 0;
+
+	ResetRound(1);
+}

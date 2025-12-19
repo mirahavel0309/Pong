@@ -13,6 +13,7 @@ public:
     void UpdateBall(float dt);
     void HandleCollisions();
 	void ResetRound(int serveDir);
+	void ResetMatch();
 
 public:
     Paddle left;
@@ -23,4 +24,12 @@ public:
     int rightScore = 0;
 
     bool scoredThisFrame = false;
+
+    float timeAccel = 0.06f;
+    float hitAccel = 0.04f;
+    float maxBallSpeedMul = 2.5f;
+
+	bool gameOver = false;
+	int winner = 0;
+
 };

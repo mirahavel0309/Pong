@@ -13,4 +13,8 @@ struct Ball
     void Reset(int dir);
     void Update(float dt);
     void BounceY();
+
+public:
+    float baseSpeed = 0.8f;
+    float speedMul = 1.0f;
 };

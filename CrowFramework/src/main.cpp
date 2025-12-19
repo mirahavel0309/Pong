@@ -251,6 +251,18 @@ int main()
         ImGui::SameLine();
         ImGui::Text("Right : %d", game.rightScore);
 
+        if (game.gameOver)
+        {
+            ImGui::Separator();
+            ImGui::Text("WINNER: %s", (game.winner == 1) ? "LEFT" : "RIGHT");
+
+            if (ImGui::Button("Restart"))
+            {
+                game.ResetMatch();
+            }
+        }
+
+
         ImGui::End();
 
         ImGui::Render();
