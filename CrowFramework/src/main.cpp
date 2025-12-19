@@ -7,6 +7,8 @@
 #include <engine/debug/openglErrorReporting.h>
 #include <engine/Shader.h>
 #include <engine/Render2D.h>
+#include "game/Paddle.h"
+#include "game/PongGame.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
@@ -141,15 +143,14 @@ int main()
     /// - Initialize game state here.
     /// - Player, enemies, levels, scores, etc.
     /// ========================================================================
-    
-    crow::Render2D_Init(vao);
+    Paddle leftPaddle(0.30f, 1.5f);
+    Paddle rightPaddle(0.30f, 1.2f);
 
-    float leftY = 0.0f;
-    float rightY = 0.0f;
-
-    const float paddleHalfH = 0.30f;
-    const float paddleSpeed = 1.5f;
     double prevTime = glfwGetTime();
+
+    PongGame game;
+
+    crow::Render2D_Init(vao);
    
 #pragma endregion
 
@@ -173,6 +174,12 @@ int main()
 		float dt = (float)(now - prevTime);
 		prevTime = now;
 		if (dt > 0.1f) dt = 0.1f;
+
+        game.UpdatePlayer(dt, window);
+        game.UpdateAI(dt);
+        game.UpdateBall(dt);
+        game.HandleCollisions();
+
 #pragma endregion
 
 #pragma region Input_Update
@@ -181,11 +188,23 @@ int main()
         /// - Handle keyboard / mouse input here.
         /// --------------------------------------------------------------------
 
-		float leftAxis = 0.0f;
-		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) leftAxis += 1.0f;
-		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) leftAxis -= 1.0f;
+        float leftAxis = 0.0f;
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) leftAxis += 1.0f;
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) leftAxis -= 1.0f;
 
-		leftY += leftAxis * paddleSpeed * dt;
+        leftPaddle.Update(leftAxis, dt);
+
+		// Right Paddle AI
+        float rightAxis = 0.0f;
+        float targetY = 0.0f;
+		float diff = targetY - rightPaddle.y;
+
+        if (diff > 0.02f) rightAxis = 1.0f;
+		else if (diff < -0.02f) rightAxis = -1.0f;
+
+		rightPaddle.Update(rightAxis, dt);
+
+
 #pragma endregion
 
 #pragma region Game_Update
@@ -194,14 +213,12 @@ int main()
         /// - Update game logic.
         /// - Movement, collision, AI, scoring, etc.
         /// --------------------------------------------------------------------
-        auto Clamp = [](float v, float lo, float hi)
-            {
-                return (v < lo) ? lo : (v > hi) ? hi : v;
-			};
-		float minY = -1.0f + paddleHalfH;
-		float maxY = 1.0f - paddleHalfH;
+        float minY = -1.0f + leftPaddle.halfH;
+        float maxY = 1.0f - leftPaddle.halfH;
 
-		leftY = Clamp(leftY, minY, maxY);
+        leftPaddle.Clamp(minY, maxY);
+        rightPaddle.Clamp(minY, maxY);
+
 #pragma endregion
 
 #pragma region World_Render
@@ -210,8 +227,11 @@ int main()
         /// - Draw game objects here.
         /// - Do NOT update game logic in this section.
         /// --------------------------------------------------------------------
-        crow::Render2D_DrawRect(shader, { -0.9f, leftY }, { 0.03f, 0.30f }, { 1,1,1 });
-        crow::Render2D_DrawRect(shader, { 0.9f, 0.0f }, { 0.03f, 0.30f }, { 1,1,1 });
+        crow::Render2D_DrawRect(shader, { -0.9f, game.left.y }, { 0.03f, game.left.scaleY }, { 1,1,1 });
+        crow::Render2D_DrawRect(shader, { 0.9f, game.right.y }, { 0.03f, game.right.scaleY }, { 1,1,1 });
+        crow::Render2D_DrawRect(shader, { game.ball.x, game.ball.y }, { game.ball.radius, game.ball.radius }, { 1,1,1 });
+
+
 #pragma endregion
 
 #pragma region UI_Render

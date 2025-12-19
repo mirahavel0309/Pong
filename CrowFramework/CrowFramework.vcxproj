@@ -171,6 +171,9 @@
     <ClCompile Include="..\dependences\imgui-docking\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\dependences\stb_image\src\stb_image.cpp" />
     <ClCompile Include="..\dependences\stb_truetype\src\stb_truetype.cpp" />
+    <ClCompile Include="src\game\PongGame.cpp" />
+    <ClCompile Include="src\game\Ball.cpp" />
+    <ClCompile Include="src\game\Paddle.cpp" />
     <ClCompile Include="src\engine\App.cpp" />
     <ClCompile Include="src\engine\AppContext.cpp" />
     <ClCompile Include="src\engine\IGame.cpp" />
@@ -182,12 +185,15 @@
     <ClCompile Include="Time.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\game\PongGame.h" />
+    <ClInclude Include="src\game\Ball.h" />
     <ClInclude Include="include\engine\App.h" />
     <ClInclude Include="include\engine\AppContext.h" />
     <ClInclude Include="include\engine\IGame.h" />
     <ClInclude Include="include\engine\Shader.h" />
     <ClInclude Include="include\engine\Render2D.h" />
     <ClInclude Include="include\engine\Input.h" />
+    <ClInclude Include="src\game\Paddle.h" />
     <ClInclude Include="Time.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
