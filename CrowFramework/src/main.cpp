@@ -104,6 +104,15 @@ int main()
     }
 
     enableReportGlErrors();
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+
+
     glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 #pragma endregion
 
@@ -143,9 +152,7 @@ int main()
     /// - Initialize game state here.
     /// - Player, enemies, levels, scores, etc.
     /// ========================================================================
-    Paddle leftPaddle(0.30f, 1.5f);
-    Paddle rightPaddle(0.30f, 1.2f);
-
+    /// 
     double prevTime = glfwGetTime();
 
     PongGame game;
@@ -192,19 +199,6 @@ int main()
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) leftAxis += 1.0f;
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) leftAxis -= 1.0f;
 
-        leftPaddle.Update(leftAxis, dt);
-
-		// Right Paddle AI
-        float rightAxis = 0.0f;
-        float targetY = 0.0f;
-		float diff = targetY - rightPaddle.y;
-
-        if (diff > 0.02f) rightAxis = 1.0f;
-		else if (diff < -0.02f) rightAxis = -1.0f;
-
-		rightPaddle.Update(rightAxis, dt);
-
-
 #pragma endregion
 
 #pragma region Game_Update
@@ -213,11 +207,6 @@ int main()
         /// - Update game logic.
         /// - Movement, collision, AI, scoring, etc.
         /// --------------------------------------------------------------------
-        float minY = -1.0f + leftPaddle.halfH;
-        float maxY = 1.0f - leftPaddle.halfH;
-
-        leftPaddle.Clamp(minY, maxY);
-        rightPaddle.Clamp(minY, maxY);
 
 #pragma endregion
 
@@ -227,9 +216,16 @@ int main()
         /// - Draw game objects here.
         /// - Do NOT update game logic in this section.
         /// --------------------------------------------------------------------
+        
         crow::Render2D_DrawRect(shader, { -0.9f, game.left.y }, { 0.03f, game.left.scaleY }, { 1,1,1 });
         crow::Render2D_DrawRect(shader, { 0.9f, game.right.y }, { 0.03f, game.right.scaleY }, { 1,1,1 });
-        crow::Render2D_DrawRect(shader, { game.ball.x, game.ball.y }, { game.ball.radius, game.ball.radius }, { 1,1,1 });
+        float aspect = (height > 0) ? (float)width / (float)height : 1.0f;
+
+        float sizeY = game.ball.halfSize * 2.0f;
+        float sizeX = sizeY / aspect;
+
+        crow::Render2D_DrawRect(shader, { game.ball.x, game.ball.y }, { sizeX, sizeY }, { 1,1,1 });
+
 
 
 #pragma endregion
@@ -239,6 +235,27 @@ int main()
         /// UI Rendering
         /// - ImGui or HUD rendering goes here.
         /// --------------------------------------------------------------------
+        
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
+        ImGui::SetNextWindowBgAlpha(0.35f);
+        ImGui::Begin("Score", nullptr,
+            ImGuiWindowFlags_NoDecoration |
+            ImGuiWindowFlags_AlwaysAutoResize |
+            ImGuiWindowFlags_NoMove);
+
+        ImGui::Text("Left : %d", game.leftScore);
+        ImGui::SameLine();
+        ImGui::Text("Right : %d", game.rightScore);
+
+        ImGui::End();
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
 #pragma endregion
 
 #pragma region Frame_End
@@ -258,6 +275,10 @@ int main()
     /// ========================================================================
     glDeleteBuffers(1, &vbo);
     glDeleteVertexArrays(1, &vao);
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     glfwDestroyWindow(window);
     glfwTerminate();

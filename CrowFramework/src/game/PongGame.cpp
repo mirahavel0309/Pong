@@ -27,7 +27,7 @@ PongGame::PongGame()
 	: left(0.30f, 1.5f)
 	, right(0.30f, 1.2f)
 {
-	ball.Reset();
+	ball.Reset(1);
 }
 
 void PongGame::UpdatePlayer(float dt, void* windowPtr)
@@ -63,22 +63,32 @@ void PongGame::UpdateAI(float dt)
 
 void PongGame::UpdateBall(float dt)
 {
+	scoredThisFrame = false;
+
 	ball.Update(dt);
 
-	if (ball.y + ball.radius >= 1.0f)
+	if (ball.y + ball.halfSize >= 1.0f)
 	{
-		ball.y = 1.0f - ball.radius;
+		ball.y = 1.0f - ball.halfSize;
 		ball.BounceY();
 	}
-	else if (ball.y - ball.radius <= -1.0f)
+	else if (ball.y - ball.halfSize <= -1.0f)
 	{
-		ball.y = -1.0f + ball.radius;
+		ball.y = -1.0f + ball.halfSize;
 		ball.BounceY();
 	}
 
-	if (ball.x < -1.2f || ball.x > 1.2f)
+	if (ball.x - ball.halfSize <= -1.0f)
 	{
-		ball.Reset();
+		rightScore++;
+		scoredThisFrame = true;
+		ResetRound(-1);
+	}
+	else if (ball.x + ball.halfSize >= 1.0f)
+	{
+		leftScore++;
+		scoredThisFrame = true;
+		ResetRound(+1);
 	}
 }
 
@@ -99,22 +109,22 @@ void PongGame::HandleCollisions()
 			float maxY = p.y + p.halfH;
 
 			float cx, cy;
-			if (!CircleAABB(ball.x, ball.y, ball.radius, minX, minY, maxX, maxY, cx, cy))
+			if (!CircleAABB(ball.x, ball.y, ball.halfSize, minX, minY, maxX, maxY, cx, cy))
 				return;
 
 			if (isLeft && ball.vx < 0.0f)
 			{
-				ball.x = maxX + ball.radius;
+				ball.x = maxX + ball.halfSize;
 				ball.vx = std::fabs(ball.vx);
 			}
 			else if (!isLeft && ball.vx > 0.0f)
 			{
-				ball.x = minX - ball.radius;
+				ball.x = minX - ball.halfSize;
 				ball.vx = -std::fabs(ball.vx);
 			}
 			else
 			{
-				ball.x = isLeft ? (maxX + ball.radius) : (minX - ball.radius);
+				ball.x = isLeft ? (maxX + ball.halfSize) : (minX - ball.halfSize);
 				return;
 			}
 
@@ -136,3 +146,11 @@ void PongGame::HandleCollisions()
 	Solve(leftX, left, true);
 	Solve(rightX, right, false);
 }
+
+void PongGame::ResetRound(int serveDir)
+{
+	left.y = 0.0f;
+	right.y = 0.0f;
+	ball.Reset(serveDir);
+}
+
